@@ -1,0 +1,16 @@
+[tasks.docker_run]
+command = "docker"
+args = ["run", "--publish=8001:8001", "--rm", "--name=tinypod", "ymgyt/tinypod:${TINYPOD_VERSION}"]
+
+[tasks.docker_build]
+command = "docker"
+args = ["build", "--tag", "ymgyt/tinypod:${TINYPOD_VERSION}", "."]
+
+[tasks.docker_push]
+command = "docker"
+args = ["image", "push", "ymgyt/tinypod:${TINYPOD_VERSION}"]
+
+[tasks.docker_flow]
+run_task = [
+    { name = ["docker_build", "docker_push"] }
+]
