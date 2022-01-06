@@ -1,0 +1,16 @@
+name: argo handson
+on:
+  push:
+    branches:
+    - main
+    - actions
+
+jobs:
+  build_docker_image:
+    # https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-Readme.md
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build docker image
+      run: docker build --tag "tinypod:${GITHUB_SHA}"
+
