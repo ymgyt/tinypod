@@ -72,7 +72,7 @@ jobs:
         cd argocd-handson-gitops
         git config user.email "githubaction@example.com"
         git config user.name "github actions"
-        git commit -am "update deployment image to ${ECR_REGISTRY}/${ECR_REPOSITORY}:sha-${GITHUB_SHA}"
+        git commit -am "update deployment image to sha-${GITHUB_SHA}"
         git push origin main
 
 

@@ -12,12 +12,14 @@ RUN rm src/*.rs
 COPY ./src ./src
 
 RUN rm ./target/release/deps/tinypod*
+#RUN cargo build --release
 RUN cargo build --release
 
 
 FROM debian:bullseye-slim
 
-COPY --from=builder /tinypod/target/release/tinypod .
+#COPY --from=builder /tinypod/target/release/tinypod .
+COPY --from=builder /tinypod/target/debug/tinypod .
 
 ENV RUST_LOG=info
 CMD ["./tinypod"]
