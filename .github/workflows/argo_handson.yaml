@@ -53,7 +53,7 @@ jobs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPOSITORY_NAME }}
       run: |
-        kubectl patch 
+        kubectl patch \
           --local \
           --filename ${DEPLOYMENT} \
           --patch '{"spec":{"template":{"spec":{"containers":[{"name": "tinypod","image": '\"${ECR_REGISTRY}/${ECR_REPOSITORY}:sha-${GITHUB_SHA}\"'}]}}}}' \
