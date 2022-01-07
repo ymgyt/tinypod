@@ -57,4 +57,4 @@ jobs:
           --local \
           --filename ${DEPLOYMENT} \
           --patch '{"spec":{"template":{"spec":{"containers":[{"name": "tinypod","image": '\"${ECR_REGISTRY}/${ECR_REPOSITORY}:sha-${GITHUB_SHA}\"'}]}}}}' \
-          --output yaml > new_${DEPLOYMENT} && mv new_${DEPLOYMENT} ${DEPLOYMENT} 
+          --output yaml > ${DEPLOYMENT}.tmp && mv ${DEPLOYMENT}.tmp ${DEPLOYMENT} 
