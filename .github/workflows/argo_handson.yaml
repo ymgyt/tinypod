@@ -6,7 +6,7 @@ on:
     - actions
 
 jobs:
-  build_docker_image:
+  deploy:
     # https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-Readme.md
     runs-on: ubuntu-20.04
     env:
@@ -30,5 +30,30 @@ jobs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPOSITORY_NAME }}
       run: |
-        docker image build --tag "${ECR_REGISTRY}/${ECR_REPOSITORY}:${GITHUB_SHA}" .
-        docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${GITHUB_SHA}
+        docker image build --tag "${ECR_REGISTRY}/${ECR_REPOSITORY}:sha-${GITHUB_SHA}" .
+        docker image push ${ECR_REGISTRY}/${ECR_REPOSITORY}:sha-${GITHUB_SHA}
+
+    - name: Checkout kubernetes manifest repository
+      uses: actions/checkout@v2
+      with:
+        repository: ymgyt/argocd-handson-gitops
+        token: ${{ secrets.GH_PAT }}
+        path: argocd-handson-gitops
+
+    - name: Setup kubectl
+      id: kubectl
+      uses: azure/setup-kubectl@v2
+      with:
+        version: "v1.22.4"
+
+    - name: Patch new image
+      env:
+        DEPLOYMENT: argocd-handson-gitops/tinypod/base/deployment.yaml
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPOSITORY_NAME }}
+      run: |
+        kubectl patch 
+          --local \
+          --filename ${DEPLOYMENT} \
+          --patch '{"spec":{"template":{"spec":{"containers":[{"name": "tinypod", "${ECR_REGISTRY}/${ECR_REPOSITORY}:sha-${GITHUB_SHA}"}]}}}}' \
+          --output yaml > new_${DEPLOYMENT} && mv new_${DEPLOYMENT} ${DEPLOYMENT} 
