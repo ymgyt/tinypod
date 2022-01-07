@@ -13,7 +13,7 @@ COPY ./src ./src
 
 RUN rm ./target/release/deps/tinypod*
 #RUN cargo build --release
-RUN cargo build --release
+RUN cargo build
 
 
 FROM debian:bullseye-slim
