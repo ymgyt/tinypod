@@ -58,3 +58,21 @@ jobs:
           --filename ${DEPLOYMENT} \
           --patch '{"spec":{"template":{"spec":{"containers":[{"name": "tinypod","image": '\"${ECR_REGISTRY}/${ECR_REPOSITORY}:sha-${GITHUB_SHA}\"'}]}}}}' \
           --output yaml > ${DEPLOYMENT}.tmp && mv ${DEPLOYMENT}.tmp ${DEPLOYMENT} 
+
+    - name: Git Status
+      run: |
+        cd argocd-handson-gitops
+        git status
+
+    - name: Push git commit to kubernetes manifest repository
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPOSITORY_NAME }}
+      run: |
+        cd argocd-handson-gitops
+        git add . -m "update deployment image to ${ECR_REGISTRY}/${ECR_REPOSITORY}:sha-${GITHUB_SHA}"
+        git push origin main
+
+
+
+
