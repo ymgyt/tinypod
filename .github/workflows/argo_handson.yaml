@@ -39,6 +39,7 @@ jobs:
         repository: ymgyt/argocd-handson-gitops
         token: ${{ secrets.GH_PAT }}
         path: argocd-handson-gitops
+        ref: main
 
     - name: Setup kubectl
       id: kubectl
@@ -55,5 +56,5 @@ jobs:
         kubectl patch 
           --local \
           --filename ${DEPLOYMENT} \
-          --patch '{"spec":{"template":{"spec":{"containers":[{"name": "tinypod", "${ECR_REGISTRY}/${ECR_REPOSITORY}:sha-${GITHUB_SHA}"}]}}}}' \
+          --patch '{"spec":{"template":{"spec":{"containers":[{"name": "tinypod","image": '\"${ECR_REGISTRY}/${ECR_REPOSITORY}:sha-${GITHUB_SHA}\"'}]}}}}' \
           --output yaml > new_${DEPLOYMENT} && mv new_${DEPLOYMENT} ${DEPLOYMENT} 
