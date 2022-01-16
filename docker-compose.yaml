@@ -1,0 +1,12 @@
+version: '3.7'
+services:
+  postgres:
+   image: postgres:14.1-bullseye
+   container_name: postgres
+   environment:
+     POSTGRES_USER: tinypod
+     POSTGRES_PASSWORD: secret
+     POSTGRES_DB: tinypod
+   ports:
+     - "5432:5432"
+
