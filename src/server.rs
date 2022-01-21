@@ -28,25 +28,32 @@ pub async fn run(
 }
 
 async fn connect_db() -> anyhow::Result<PgPool> {
-    let user = env::var("TINYPOD_DB_USER")
-        .map_err(|_| anyhow!("environment variable TINYPOD_DB_USER required"))?;
-    let pass = env::var("TINYPOD_DB_PASS")
-        .map_err(|_| anyhow!("environment variable TINYPOD_DB_PASS required"))?;
-    let host = env::var("TINYPOD_DB_HOST")
-        .map_err(|_| anyhow!("environment variable TINYPOD_DB_HOST required"))?;
-    let port = env::var("TINYPOD_DB_PORT")
-        .map_err(|_| anyhow!("environment variable TINYPOD_DB_PORT required"))?;
-    let name = env::var("TINYPOD_DB_NAME")
-        .map_err(|_| anyhow!("environment variable TINYPOD_DB_NAME required"))?;
+    // use DB_URI if specified
+    let uri = if let Ok(uri) = env::var("TINYPOD_DB_URI") {
+        uri
+    } else {
+        let user = env::var("TINYPOD_DB_USER")
+            .map_err(|_| anyhow!("environment variable TINYPOD_DB_USER required"))?;
+        let pass = env::var("TINYPOD_DB_PASS")
+            .map_err(|_| anyhow!("environment variable TINYPOD_DB_PASS required"))?;
+        let host = env::var("TINYPOD_DB_HOST")
+            .map_err(|_| anyhow!("environment variable TINYPOD_DB_HOST required"))?;
+        let port = env::var("TINYPOD_DB_PORT")
+            .map_err(|_| anyhow!("environment variable TINYPOD_DB_PORT required"))?;
+        let name = env::var("TINYPOD_DB_NAME")
+            .map_err(|_| anyhow!("environment variable TINYPOD_DB_NAME required"))?;
 
-    let uri = format!(
-        "postgresql://{user}:{pass}@{host}:{port}/{name}",
-        user = user,
-        pass = pass,
-        host = host,
-        port = port,
-        name = name,
-    );
+        let uri = format!(
+            "postgresql://{user}:{pass}@{host}:{port}/{name}",
+            user = user,
+            pass = pass,
+            host = host,
+            port = port,
+            name = name,
+        );
+
+        uri
+    };
 
     tracing::debug!(%uri, "connecting to db");
 
