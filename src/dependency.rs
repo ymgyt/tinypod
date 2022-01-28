@@ -57,7 +57,7 @@ async fn connect_db() -> anyhow::Result<PgPool> {
 async fn connect_db_if_needed() -> Option<PgPool> {
     let connect = if let Ok(raw) = env::var("TINYPOD_DB_USE") {
         raw.parse::<bool>()
-            .expect("TINYPOD_DB_USE should be 'true' or 'false'")
+            .unwrap_or_else(|_| panic!("TINYPOD_DB_USE should be 'true' or 'false'. got {raw}"))
     } else {
         false
     };
