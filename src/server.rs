@@ -5,9 +5,9 @@ use std::{
 };
 
 use axum::{extract::Extension, response::IntoResponse, routing::get, AddExtensionLayer, Router};
+use itertools::Itertools;
 use tower_http::trace::TraceLayer;
 use tracing::info;
-use itertools::Itertools;
 
 use crate::dependency::Dependency;
 
@@ -25,7 +25,7 @@ pub async fn run(
 
     info!(?addr, "listening");
 
-    run_with_listener(listener, shutdown,dependency).await
+    run_with_listener(listener, shutdown, dependency).await
 }
 
 async fn ping(Extension(dep): Extension<Dependency>) -> impl IntoResponse {
@@ -42,9 +42,16 @@ async fn ping(Extension(dep): Extension<Dependency>) -> impl IntoResponse {
 
 async fn list_mongodb_databases(Extension(dep): Extension<Dependency>) -> impl IntoResponse {
     if let Some(client) = dep.mongo_client {
-         Cow::Owned(client.list_database_names(None,None).await.unwrap().into_iter().join("\n"))
+        Cow::Owned(
+            client
+                .list_database_names(None, None)
+                .await
+                .unwrap()
+                .into_iter()
+                .join("\n"),
+        )
     } else {
-       Cow::Borrowed("no mongodb connection")
+        Cow::Borrowed("no mongodb connection")
     }
 }
 
@@ -55,7 +62,7 @@ pub async fn run_with_listener(
 ) -> Result<(), anyhow::Error> {
     let app = Router::new()
         .route("/db/ping", get(ping))
-        .route("mongodb/databases", get(list_mongodb_databases))
+        .route("/mongodb/databases", get(list_mongodb_databases))
         .route("/healthcheck", get(healthcheck))
         .layer(
             tower::ServiceBuilder::new()

@@ -76,14 +76,15 @@ async fn connect_mongodb() -> anyhow::Result<mongodb::Client> {
 
     let client = mongodb::Client::with_options(options)?;
 
+    tracing::debug!(uri=%connection_string, "connecting to mongodb");
+
     Ok(client)
 }
 
 async fn connect_mongodb_if_needed() -> Option<mongodb::Client> {
     let connect = if let Ok(raw) = env::var("TINYPOD_MONGODB_USE") {
-        raw.parse::<bool>().unwrap_or_else(|_| panic!(
-            "TINYPOD_MONGODB_USE should be 'true' or 'false. got {raw}"
-        ))
+        raw.parse::<bool>()
+            .unwrap_or_else(|_| panic!("TINYPOD_MONGODB_USE should be 'true' or 'false. got {raw}"))
     } else {
         false
     };

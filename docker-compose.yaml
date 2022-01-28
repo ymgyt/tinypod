@@ -10,3 +10,11 @@ services:
    ports:
      - "5432:5432"
 
+  mongodb:
+    image: mongo:5.0.5
+    container_name: mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: tinypod
+      MONGO_INITDB_ROOT_PASSWORD: secret
+    ports:
+    - "27017:27017"
