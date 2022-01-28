@@ -1,15 +1,15 @@
 use std::{
     borrow::Cow,
-    env,
     future::Future,
     net::{SocketAddr, TcpListener},
 };
 
-use anyhow::anyhow;
 use axum::{extract::Extension, response::IntoResponse, routing::get, AddExtensionLayer, Router};
-use sqlx::postgres::PgPool;
 use tower_http::trace::TraceLayer;
 use tracing::info;
+use itertools::Itertools;
+
+use crate::dependency::Dependency;
 
 async fn healthcheck() -> &'static str {
     "OK"
@@ -18,65 +18,19 @@ async fn healthcheck() -> &'static str {
 pub async fn run(
     addr: impl Into<SocketAddr>,
     shutdown: impl Future<Output = ()>,
+    dependency: Dependency,
 ) -> Result<(), anyhow::Error> {
     let addr = addr.into();
     let listener = std::net::TcpListener::bind(addr)?;
 
     info!(?addr, "listening");
 
-    run_with_listener(listener, shutdown).await
+    run_with_listener(listener, shutdown,dependency).await
 }
 
-async fn connect_db() -> anyhow::Result<PgPool> {
-    // use DB_URI if specified
-    let uri = if let Ok(uri) = env::var("TINYPOD_DB_URI") {
-        uri
-    } else {
-        let user = env::var("TINYPOD_DB_USER")
-            .map_err(|_| anyhow!("environment variable TINYPOD_DB_USER required"))?;
-        let pass = env::var("TINYPOD_DB_PASS")
-            .map_err(|_| anyhow!("environment variable TINYPOD_DB_PASS required"))?;
-        let host = env::var("TINYPOD_DB_HOST")
-            .map_err(|_| anyhow!("environment variable TINYPOD_DB_HOST required"))?;
-        let port = env::var("TINYPOD_DB_PORT")
-            .map_err(|_| anyhow!("environment variable TINYPOD_DB_PORT required"))?;
-        let name = env::var("TINYPOD_DB_NAME")
-            .map_err(|_| anyhow!("environment variable TINYPOD_DB_NAME required"))?;
-
-        let uri = format!(
-            "postgresql://{user}:{pass}@{host}:{port}/{name}",
-            user = user,
-            pass = pass,
-            host = host,
-            port = port,
-            name = name,
-        );
-
-        uri
-    };
-
-    tracing::debug!(%uri, "connecting to db");
-
-    Ok(PgPool::connect(&uri).await?)
-}
-
-async fn connect_db_if_needed() -> Option<PgPool> {
-    let connect = if let Ok(raw) = env::var("TINYPOD_DB_USE") {
-        raw.parse::<bool>()
-            .expect("TINYPOD_DB_USE should be 'true' or 'false'")
-    } else {
-        false
-    };
-    if connect {
-        Some(connect_db().await.unwrap())
-    } else {
-        None
-    }
-}
-
-async fn ping(Extension(maybe_pool): Extension<Option<PgPool>>) -> impl IntoResponse {
+async fn ping(Extension(dep): Extension<Dependency>) -> impl IntoResponse {
     use sqlx::Connection;
-    if let Some(pool) = maybe_pool {
+    if let Some(pool) = dep.db_pool {
         match pool.acquire().await.unwrap().ping().await {
             Ok(_) => Cow::Borrowed("ping success"),
             Err(err) => Cow::Owned(format!("ping failed: {:?}", err)),
@@ -86,12 +40,22 @@ async fn ping(Extension(maybe_pool): Extension<Option<PgPool>>) -> impl IntoResp
     }
 }
 
+async fn list_mongodb_databases(Extension(dep): Extension<Dependency>) -> impl IntoResponse {
+    if let Some(client) = dep.mongo_client {
+         Cow::Owned(client.list_database_names(None,None).await.unwrap().into_iter().join("\n"))
+    } else {
+       Cow::Borrowed("no mongodb connection")
+    }
+}
+
 pub async fn run_with_listener(
     listener: TcpListener,
     shutdown: impl Future<Output = ()>,
+    dependency: Dependency,
 ) -> Result<(), anyhow::Error> {
     let app = Router::new()
         .route("/db/ping", get(ping))
+        .route("mongodb/databases", get(list_mongodb_databases))
         .route("/healthcheck", get(healthcheck))
         .layer(
             tower::ServiceBuilder::new()
@@ -100,7 +64,7 @@ pub async fn run_with_listener(
                         tracing::info!(?request);
                     },
                 ))
-                .layer(AddExtensionLayer::new(connect_db_if_needed().await)),
+                .layer(AddExtensionLayer::new(dependency)),
         );
 
     axum::Server::from_tcp(listener)?

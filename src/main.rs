@@ -15,6 +15,7 @@ async fn main() -> Result<(), anyhow::Error> {
     };
 
     let addr = ([0, 0, 0, 0], 8001);
+    let dep = tinypod::Dependency::new().await?;
 
-    server::run(addr, signal).await
+    server::run(addr, signal, dep).await
 }
