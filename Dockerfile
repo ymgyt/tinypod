@@ -1,4 +1,4 @@
-FROM rust:1.57.0-slim-bullseye as builder
+FROM rust:1.58.0-slim-bullseye as builder
 
 RUN cargo new --bin tinypod
 WORKDIR /tinypod
